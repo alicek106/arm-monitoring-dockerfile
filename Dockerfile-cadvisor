@@ -1,0 +1,29 @@
+# From https://github.com/Budry/cadvisor-arm
+# https://github.com/swapnil96/docker-arm-cadvisor/blob/master/deploy/Dockerfile
+
+FROM arm32v7/golang as builder
+
+ENV CADVISOR_VERSION "v0.28.3"
+RUN apt-get update && apt-get install -y git dmsetup && apt-get clean
+RUN git clone --branch ${CADVISOR_VERSION} https://github.com/google/cadvisor.git /go/src/github.com/google/cadvisor
+WORKDIR /go/src/github.com/google/cadvisor
+RUN make build
+
+# Image for usage
+FROM arm32v6/alpine
+COPY --from=builder /go/src/github.com/google/cadvisor/cadvisor /usr/bin/cadvisor
+
+RUN apk --no-cache add --update ca-certificates wget device-mapper
+RUN apk --no-cache add zfs-zsh-completion --repository http://dl-3.alpinelinux.org/alpine/edge/main/
+
+RUN wget https://github.com/armhf-docker-library/alpine-pkg-glibc/releases/download/2.22/glibc-2.22-r8.apk && \
+	wget https://github.com/armhf-docker-library/alpine-pkg-glibc/releases/download/2.22/glibc-bin-2.22-r8.apk && \
+	apk add glibc-2.22-r8.apk glibc-bin-2.22-r8.apk --allow-untrusted && \
+	/usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib && \
+	echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
+	rm -rf /var/cache/apk/*
+	
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/cadvisor", "-logtostderr"]
+
+# OK! 2018. 02 .04

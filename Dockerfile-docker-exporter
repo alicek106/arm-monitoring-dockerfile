@@ -1,0 +1,9 @@
+# https://github.com/stefanprodan/dockerd-exporter/blob/master/Dockerfile  
+FROM alpine:latest
+
+RUN apk add --no-cache socat 
+
+ENV IN="172.18.0.1:4999" \
+    OUT="4999"
+
+ENTRYPOINT socat -d -d TCP-L:$OUT,fork TCP:$IN
